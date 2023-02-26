@@ -1,8 +1,38 @@
-use rocket::{serde::json::{ Value, json}, response::status::{NoContent, self}};
 #[macro_use] extern crate rocket;
+#[macro_use] extern crate diesel;
+#[macro_use] extern crate rocket_sync_db_pools;
+
 
 mod auth;
+mod models;
+mod schema;
+
 use auth::BasicAuth;
+use diesel::QueryDsl;
+use models::Rustacean;
+use rocket::response::*;
+use rocket::response::status::*;
+use rocket::serde::json::*;
+use rocket_sync_db_pools::diesel::SqliteConnection;
+use schema::rustaceans;
+use crate::diesel::RunQueryDsl;
+
+
+#[database("sqlite_logs")]
+struct LogsDbConn(SqliteConnection);
+
+#[database("sqlite_path")]
+struct DbConn(SqliteConnection);
+
+
+#[get("/rustaceans")]
+async fn get_rustaceans(_auth: BasicAuth, _conn: DbConn) -> Value {
+    // use schema::rustaceans::dsl::*;
+    _conn.run(|c| {
+        let all = rustaceans::table.limit(100).load::<Rustacean>(c).expect("error loading rustaceans from db");
+        json!(all)
+    }).await
+}
 
 #[get("/decks")]
 fn get_decks(_auth: BasicAuth) -> Value {
@@ -50,6 +80,7 @@ async fn main() {
         delete_deck
     ])
     .register("/",catchers![not_found])
+    .attach(DbConn::fairing())
     .launch().await;
 }
 
