@@ -5,7 +5,7 @@ use actix_web::{
     web::{Data, Json, ReqData},
     HttpResponse, Responder
 };
-use actix_web_httpauth::extractors::basic::BasicAuth;
+use actix_web_httpauth::{extractors::basic::BasicAuth, headers::authorization::Basic};
 use argonautica::{Hasher, Verifier};
 use chrono::NaiveDateTime;
 use hmac::{Hmac, Mac};
@@ -19,6 +19,19 @@ use sqlx::{self, FromRow};
 struct CreateUserBody {
     username: String,
     password: String,
+}
+
+#[derive(Deserialize)]
+struct LoginUserBody {
+    username: String,
+    password: String,
+}
+
+#[derive(Serialize, FromRow)]
+struct UserInfo {
+    id: i32,
+    username: String,
+    token: String
 }
 
 // the return object
@@ -51,8 +64,8 @@ struct Deck {
 }
 
 
-#[post("/user")]
-async fn create_user(state: Data<AppState>, body: Json<CreateUserBody>) -> impl Responder {
+#[post("/register")]
+async fn register(state: Data<AppState>, body: Json<CreateUserBody>) -> impl Responder {
     let user: CreateUserBody = body.into_inner();
     let hash_secret = std::env::var("HASH_SECRET").expect("HASH_SECRET must be set!");
     let mut hasher = Hasher::default();
@@ -78,13 +91,19 @@ RETURNING id, username"
 
 }
 
-#[get("/auth")]
-async fn basic_auth(state: Data<AppState>,  credentials: BasicAuth) -> impl Responder {
+#[post("/login")]
+async fn login(state: Data<AppState>,  body: Json<LoginUserBody>) -> impl Responder {
     let jwt_secret: Hmac<Sha256> = Hmac::new_from_slice(
         std::env::var("JWT_SECRET")
         .expect("JWT_SECRET must be set!")
             .as_bytes()
     ).unwrap();
+
+    let loginInfo: LoginUserBody = body.into_inner();
+    let username_str = loginInfo.username;
+    let password_str = loginInfo.password;
+
+    let credentials = Basic::new(username_str, Some(password_str));
     let username = credentials.user_id();
     let password = credentials.password();
 
@@ -109,7 +128,11 @@ async fn basic_auth(state: Data<AppState>,  credentials: BasicAuth) -> impl Resp
                         if is_valid {
                             let claims = TokenClaims { id: user.id };
                             let token_str = claims.sign_with_key(&jwt_secret).unwrap();
-                            HttpResponse::Ok().json(token_str)
+                            HttpResponse::Ok().json(UserInfo {
+                                id: user.id,
+                                username: user.username ,
+                                token:  token_str
+                            })
                         } else {
                             HttpResponse::Unauthorized().json("Incorrect username or password")
                         }
