@@ -25,7 +25,7 @@ pub struct AppState {
 
 // bring them in
 mod services;
-use services::{basic_auth, create_user, create_deck};
+use services::{login, register, create_deck};
 
 // define structure of our bearer token
 // should be serializeable, deserialzable and cloneable
@@ -76,8 +76,8 @@ async fn main() -> std::io::Result<()> {
         let bearer_middleware = HttpAuthentication::bearer(validator);
         App::new()
             .app_data(Data::new(AppState { db: pool.clone() }))
-            .service(basic_auth)
-            .service(create_user)
+            .service(login)
+            .service(register)
             .service(
                 web::scope("")
                 .wrap(bearer_middleware)
