@@ -5,7 +5,7 @@ use actix_web::{
     App, HttpMessage, HttpServer,
 };
 use dotenv::dotenv;
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres, migrate};
 
 use actix_web_httpauth::{
     extractors::{
@@ -23,7 +23,7 @@ pub struct AppState {
     db: Pool<Postgres>
 }
 
-// bring them in
+mod models;
 mod services;
 use services::{login, register, create_deck};
 
@@ -70,7 +70,7 @@ async fn main() -> std::io::Result<()> {
         .connect(&database_url)
         .await
         .expect("Error building a connection pool");
-
+    migrate!("./migrations").run(&pool).await.expect("Error running migrations");
 
     HttpServer::new(move || {
         let bearer_middleware = HttpAuthentication::bearer(validator);
