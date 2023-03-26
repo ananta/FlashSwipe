@@ -1,8 +1,8 @@
 CREATE TABLE decks (
-  id SERIAL PRIMARY KEY,
+  deck_id SERIAL PRIMARY KEY,
   title VARCHAR(255),
   description VARCHAR(255),
   published_by INT,
   published_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT fk_decks_users FOREIGN KEY (published_by) REFERENCES users (id)
+  CONSTRAINT fk_decks_users FOREIGN KEY (published_by) REFERENCES users (user_id)
 );
