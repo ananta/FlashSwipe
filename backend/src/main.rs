@@ -3,6 +3,7 @@ use actix_web::{
     error::Error,
     web::{self, Data},
     App, HttpMessage, HttpServer,
+    middleware::Logger
 };
 use dotenv::dotenv;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, migrate};
@@ -12,7 +13,7 @@ use actix_web_httpauth::{
         bearer::{self, BearerAuth},
         AuthenticationError,
     },
-    middleware::HttpAuthentication,
+    middleware::HttpAuthentication
 };
 use hmac::{Hmac, Mac};
 use jwt::VerifyWithKey;
@@ -23,15 +24,17 @@ pub struct AppState {
     db: Pool<Postgres>
 }
 
-mod models;
-mod services;
-use services::{login, register, create_deck};
+mod model;
+mod controller;
+use controller::auth::{login, register};
+use controller::deck::create_deck;
+use controller::health_route::health_checker_handler;
 
 // define structure of our bearer token
 // should be serializeable, deserialzable and cloneable
 #[derive(Serialize, Deserialize, Clone)]
 pub struct TokenClaims {
-    id: i32,
+    user_id: i32,
 }
 
 // middleware to validate our token
@@ -63,9 +66,14 @@ async fn validator(req: ServiceRequest, credentials: BearerAuth) -> Result<Servi
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // set up logging variables
+    std::env::set_var("RUST_LOG", "debug");
+    std::env::set_var("RUST_BACKTRACE", "1");
+    env_logger::init();
+
     dotenv().ok();
     let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must be set");
-    let pool = PgPoolOptions::new()
+    let pool:Pool<Postgres> = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await
@@ -73,9 +81,12 @@ async fn main() -> std::io::Result<()> {
     migrate!("./migrations").run(&pool).await.expect("Error running migrations");
 
     HttpServer::new(move || {
+        let logger:Logger =  Logger::default();
         let bearer_middleware = HttpAuthentication::bearer(validator);
         App::new()
+            .wrap(logger)
             .app_data(Data::new(AppState { db: pool.clone() }))
+            .service(health_checker_handler)
             .service(login)
             .service(register)
             .service(
