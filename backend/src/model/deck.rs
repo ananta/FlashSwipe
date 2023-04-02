@@ -20,6 +20,12 @@ pub struct DeckIdentifier {
     pub deck_id: String
 }
 
+#[derive(Deserialize, Serialize)]
+pub struct DeckAndCardIdentifier {
+    pub deck_id: String,
+    pub card_id: String
+}
+
 #[derive(Serialize, FromRow)]
 pub struct Deck {
     pub deck_id: i32,
