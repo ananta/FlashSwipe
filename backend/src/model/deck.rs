@@ -5,7 +5,14 @@ use sqlx::{self, FromRow};
 #[derive(Deserialize)]
 pub struct CreateDeckBody {
     pub title: String,
-    pub description: String
+    pub description: String,
+}
+
+
+#[derive(Deserialize)]
+pub struct UpdateDeckBody {
+    pub title: Option<String>,
+    pub description: Option<String>,
 }
 
 #[derive(Deserialize, Serialize)]
