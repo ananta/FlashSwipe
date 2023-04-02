@@ -59,6 +59,9 @@ migrate_down:
 run: 
 	cargo run
 
+watch:
+	cargo watch -x run
+
 # check if any container with the name exist, if it does, delete the damn thing
 init_db: check_if_container_exists start_db_container 
 
