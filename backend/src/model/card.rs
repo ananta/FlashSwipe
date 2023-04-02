@@ -4,7 +4,6 @@ use sqlx::{self, FromRow};
 
 #[derive(Deserialize)]
 pub struct AddCardsInsideDeck {
-    pub deck_id: i32,
     pub front: String,
     pub back: String
 }

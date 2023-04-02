@@ -1,5 +1,5 @@
 use crate::{AppState, TokenClaims};
-use crate::model::deck::{CreateDeckBody, Deck, DeckIdentifier, UpdateDeckBody};
+use crate::model::deck::{CreateDeckBody, Deck, DeckIdentifier, DeckAndCardIdentifier, UpdateDeckBody};
 use crate::model::card::{AddCardsInsideDeck, Card};
 use actix_web::{
     get,
@@ -36,10 +36,29 @@ async fn get_deck_info(state: Data<AppState>, deck_identifier: Path<DeckIdentifi
         .fetch_one(&state.db)
         .await
         {
-            Ok(deck) => HttpResponse::Ok().json(deck),
+            Ok(deck) => {
+                match sqlx::query_as::<_, Card>(
+                    "SELECT * from cards where deck_id = $1::INTEGER")
+                    .bind(&deck_identifier.deck_id).fetch_all(&state.db).await {
+                        Ok(cards) => {
+                            return HttpResponse::Ok().json(json!({
+                                "deck": {
+                                "deck_id": deck.deck_id,
+                                "description": deck.description,
+                                "published_by": deck.published_by,
+                                "published_on": deck.published_on,
+                                "title": deck.title,
+                                "cards": cards
+                            },
+                            }))
+                        },
+                        Err(error) => HttpResponse::InternalServerError().json(format!("{:?}", error)),
+                    }
+            },
             Err(error) => HttpResponse::InternalServerError().json(format!("{:?}", error)),
         }
 }
+
 
 
 #[patch("/decks/{deck_id}")]
@@ -154,27 +173,55 @@ async fn create_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims
 }
 
 
-// TODO
-#[post("/decks/cards")]
-async fn add_cards_in_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, body: Json<AddCardsInsideDeck>) -> impl Responder {
+#[post("/decks/{deck_id}/cards")]
+async fn add_cards_in_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, body: Json<AddCardsInsideDeck>, deck_identifier: Path<DeckIdentifier>) -> impl Responder {
     match req_user {
         Some(user) => {
-            // TODO: Check if the user has permission to the deck
+            let deck_id:i32 = deck_identifier.deck_id.parse::<i32>().unwrap();
+            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
+            if is_valid_deck.is_err() {
+                return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
+            }
+
             let card_info: AddCardsInsideDeck = body.into_inner();
             match sqlx::query_as::<_, Card>(
                 "INSERT INTO cards (deck_id, front, back)
                     VALUES ($1, $2, $3)
                     RETURNING card_id, deck_id, front, back, published_on")
-                .bind(card_info.deck_id)
+                .bind(deck_id.to_owned())
                 .bind(card_info.front)
                 .bind(card_info.back)
                 .fetch_one(&state.db)
                 .await
                 {
-                    Ok(decks) => HttpResponse::Ok().json(decks),
+                    Ok(deck) => HttpResponse::Ok().json(deck),
                     Err(error) => HttpResponse::InternalServerError().json(format!("{:?}", error)),
                 }
         },
         _ => HttpResponse::Unauthorized().json("Unable to verify identity"),
     }
 }
+
+#[delete("/decks/{deck_id}/cards/{card_id}")]
+async fn remove_cards_in_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, deck_identifier: Path<DeckAndCardIdentifier>) -> impl Responder {
+    match req_user {
+        Some(user) => {
+            let deck_id:i32 = deck_identifier.deck_id.parse::<i32>().unwrap();
+            let card_id:i32 = deck_identifier.card_id.parse::<i32>().unwrap();
+            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
+            if is_valid_deck.is_err() {
+                return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
+            }
+            let rows_affected = sqlx::query!(r#"DELETE FROM cards where card_id = $1 AND deck_id = $2"#, card_id, deck_id).execute(
+                &state.db
+            ).await
+                .unwrap().rows_affected();
+            if rows_affected == 0 {
+                return HttpResponse::InternalServerError().json("failed");
+            }
+            return HttpResponse::Ok().json("success")
+        },
+        _ => HttpResponse::Unauthorized().json("Unable to verify identity"),
+    }
+}
+

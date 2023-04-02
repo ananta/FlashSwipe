@@ -27,7 +27,7 @@ pub struct AppState {
 mod model;
 mod controller;
 use controller::auth::{login, register};
-use controller::deck::{create_deck, get_decks,delete_deck, get_public_decks, get_deck_info, add_cards_in_deck, update_deck};
+use controller::deck::{create_deck, get_decks,delete_deck, get_public_decks, get_deck_info, add_cards_in_deck, update_deck, remove_cards_in_deck};
 use controller::health_route::health_checker_handler;
 
 // define structure of our bearer token
@@ -98,7 +98,8 @@ async fn main() -> std::io::Result<()> {
                 .service(delete_deck)
                 .service(update_deck)
                 .service(get_public_decks)
-                .service(add_cards_in_deck),
+                .service(add_cards_in_deck)
+                .service(remove_cards_in_deck),
             )
     })
         .bind(("127.0.0.1", 8080))?
