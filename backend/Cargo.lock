@@ -512,6 +512,7 @@ dependencies = [
  "env_logger 0.8.4",
  "hmac",
  "jwt",
+ "log",
  "serde",
  "serde_json",
  "sha2",
