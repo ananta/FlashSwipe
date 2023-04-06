@@ -1,14 +1,30 @@
-import { StatusBar } from "expo-status-bar";
-import { Provider } from "react-redux";
-import AppRoute from "./src/App";
+import { TamaguiProvider, Theme } from '@tamagui/web';
+import { YStack } from 'tamagui';
 
-import { store } from "./src/store";
+import config from './tamagui.config';
 
-const App = () => (
-  <Provider store={store}>
-    <AppRoute />
-    <StatusBar style="auto" />
-  </Provider>
-);
+const App = () => {
+  /* const colorScheme = useColorScheme(); */
+  const colorScheme = 'dark';
+  const [loaded] = useFonts({
+    Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
+    InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
+  });
 
+  if (!loaded) {
+    return null;
+  }
+
+  return (
+    <TamaguiProvider config={config}>
+      <Theme name={colorScheme === 'dark' ? 'dark' : 'light'}>
+        <YStack f={1}>
+          <AppRoute />
+          <StatusBar style='light' />
+        </YStack>
+      </Theme>
+      <Toast />
+    </TamaguiProvider>
+  );
+};
 export default App;
