@@ -3,6 +3,10 @@
   "compilerOptions": {
     "strict": true,
     "module": "es6",
-    "jsx": "preserve"
+    "baseUrl": "./src",
+    "jsx": "preserve",
+    "paths": {
+      "components": ["./src/components"]
+    }
   }
 }
