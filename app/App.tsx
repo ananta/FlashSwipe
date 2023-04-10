@@ -1,18 +1,23 @@
-import { TamaguiProvider, Theme } from '@tamagui/web';
-import { YStack } from 'tamagui';
+import { TamaguiProvider, Theme } from '@tamagui/web'
+import { useFonts } from 'expo-font'
+import { StatusBar } from 'expo-status-bar'
+import Toast from 'react-native-toast-message'
+import { YStack } from 'tamagui'
 
-import config from './tamagui.config';
+import AppRoute from './src/App'
+
+import config from './tamagui.config'
 
 const App = () => {
   /* const colorScheme = useColorScheme(); */
-  const colorScheme = 'dark';
+  const colorScheme = 'dark'
   const [loaded] = useFonts({
     Inter: require('@tamagui/font-inter/otf/Inter-Medium.otf'),
     InterBold: require('@tamagui/font-inter/otf/Inter-Bold.otf'),
-  });
+  })
 
   if (!loaded) {
-    return null;
+    return null
   }
 
   return (
@@ -25,6 +30,6 @@ const App = () => {
       </Theme>
       <Toast />
     </TamaguiProvider>
-  );
-};
-export default App;
+  )
+}
+export default App
