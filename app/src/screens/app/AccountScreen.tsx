@@ -1,39 +1,38 @@
-import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
-import { useSelector, useDispatch } from "react-redux";
-import {
-  selectIsLoggedIn,
-  selectEmail,
-  selectUserName,
-  setSignOut
-} from "../../slices/authSlice";
+import React from 'react'
+import { Button, XStack, YStack, Label, Avatar, Text, Stack } from 'tamagui'
 
-const DashboardScreen = () => {
-  const dispatch = useDispatch();
-  const username = useSelector(selectUserName);
+import { useStore } from 'store'
+
+const ProfileScreen = () => {
+  const { logout, user } = useStore()
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "#F5FCFF"
-      }}
-    >
-      <Text>Account Screen</Text>
-      <TouchableOpacity
-        style={{
-          backgroundColor: "red",
-          paddingHorizontal: 50,
-          paddingVertical: 15,
-          margin: 10
-        }}
-        onPress={() => dispatch(setSignOut())}
+    <YStack pt='$10'>
+      <XStack
+        flexDirection='row'
+        alignItems='center'
+        justifyContent='center'
+        space='$6'
+        pt='$10'
       >
-        <Text style={{ color: "white" }}>Sign out</Text>
-      </TouchableOpacity>
-    </View>
-  );
-};
+        <Avatar circular size='$10'>
+          <Avatar.Fallback backgroundColor='$purple10' />
+        </Avatar>
+      </XStack>
+      <XStack $sm={{ flexDirection: 'column' }} px='$4' space>
+        <Stack margin={10}>
+          <Label textAlign='center' fontWeight='$10' fontSize={'20'}>
+            {user.first_name} {user.last_name}
+          </Label>
+          <Text textAlign='center' color={'white'}>
+            @{user.username} | #{user.user_id}
+          </Text>
+        </Stack>
+        <Button theme='purple_alt1' onPress={logout}>
+          Logout
+        </Button>
+      </XStack>
+    </YStack>
+  )
+}
 
-export default DashboardScreen;
+export default ProfileScreen
