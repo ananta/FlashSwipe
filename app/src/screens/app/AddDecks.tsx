@@ -2,18 +2,25 @@ import React, { Fragment } from 'react'
 import { SubmitHandler, useForm, Controller } from 'react-hook-form'
 import { Button, Input, YStack, Label, SizableText } from 'tamagui'
 import { Toast } from 'react-native-toast-message/lib/src/Toast'
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { useStore } from 'store'
 import { createDeck } from 'api'
 import { IDeck, IDeckInfo } from 'store/deckSlice'
-import { NavProps } from 'types/NavTypes'
 import useAuthMutation from 'hooks/useAuthMutation'
+import { RootStackParamList } from 'types/NavTypes'
 
-const AddDecksScreen: React.FC<NavProps> = ({ navigation }) => {
+type AddDecksScreenProps = NativeStackScreenProps<
+  RootStackParamList,
+  'Add Deck'
+>
+
+const AddDecksScreen: React.FC<AddDecksScreenProps> = ({ navigation }) => {
   const { createDeck: addDeckToState } = useStore((state) => state)
 
   const [addDeck] = useAuthMutation<IDeck, unknown, IDeckInfo>(createDeck, {
     onSuccess: (data: IDeck) => {
+      console.log({ data })
       addDeckToState(data)
       Toast.show({
         type: 'success',
@@ -38,11 +45,6 @@ const AddDecksScreen: React.FC<NavProps> = ({ navigation }) => {
 
   const handleAddDeck: SubmitHandler<IDeckInfo> = (deckInfo) =>
     addDeck(deckInfo)
-
-  /* const handleAddDeck: SubmitHandler<IDeckInfo> = (deckInfo) => { */
-  /*   addDeck(deckInfo)({ type: 'post' }) */
-  /* } */
-
   return (
     <YStack p='$3' space='$2'>
       <Controller
