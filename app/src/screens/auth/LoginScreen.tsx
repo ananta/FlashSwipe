@@ -1,15 +1,18 @@
 import React, { Fragment } from 'react'
 import { Input, YStack, Label, Text, SizableText } from 'tamagui'
 import { useForm, Controller, SubmitHandler } from 'react-hook-form'
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { useStore } from 'store'
 import { Button } from 'components/Button'
 import { LogoItem } from 'components/Logo'
 import { Layout } from 'components/Layout'
-import { NavProps } from 'types/NavTypes'
+import { RootAuthStackParamList } from 'types/NavTypes'
 import { IUserCredentials } from 'store/authSlice'
 
-const LoginScreen: React.FC<NavProps> = ({ navigation }) => {
+type LoginScreenProps = NativeStackScreenProps<RootAuthStackParamList, 'Login'>
+
+const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { login, isLoading } = useStore((state) => state)
   const {
     control,

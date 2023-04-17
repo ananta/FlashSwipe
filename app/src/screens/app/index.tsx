@@ -7,19 +7,22 @@ import DashboardScreen from './DashboardScreen'
 import AccountScreen from './AccountScreen'
 import AddDecksScreen from './AddDecks'
 import DeckInfoScreen from './DeckInfo'
-import YourDeckScreen from './YourDecks'
+import YourDeckScreen from './YourDecksScreen'
+import SwipeScreen from './SwipeScreen'
+import { RootStackParamList } from 'types/NavTypes'
 
 const Tab = createBottomTabNavigator()
 
-const Stack = createNativeStackNavigator()
+const Stack = createNativeStackNavigator<RootStackParamList>()
 
 const DashStackNavigator = () => {
   return (
-    <Stack.Navigator>
-      <Stack.Screen name='Dashboard' component={DashboardScreen} />
+    <Stack.Navigator initialRouteName='Home'>
+      <Stack.Screen name='Home' component={DashboardScreen} />
       <Stack.Screen name='Add Deck' component={AddDecksScreen} />
       <Stack.Screen name='Deck Info' component={DeckInfoScreen} />
       <Stack.Screen name='Your Decks' component={YourDeckScreen} />
+      <Stack.Screen name='Swipe Screen' component={SwipeScreen} />
     </Stack.Navigator>
   )
 }

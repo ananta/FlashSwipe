@@ -1,12 +1,23 @@
 import axios, { AxiosRequestConfig } from 'axios'
 
 import { BASE_URL } from 'config'
-import { ICardInfo, IDeck, IDeckInfo, IDeckWithCards } from 'store/deckSlice'
+import {
+  ICard,
+  ICardInfo,
+  IDeck,
+  IDeckInfo,
+  IDeckWithCards,
+} from 'store/deckSlice'
 
-export const getDeckInfo = async ({ deckId }: { deckId: number }) => {
-  const response = await axios<IDeckWithCards>({
+export const getDeckInfo = async (
+  { deck_id }: { deck_id: number },
+  config: AxiosRequestConfig
+) => {
+  console.log({ deck_id })
+  const response = await axios<{ deck: IDeckWithCards }>({
+    ...config,
     method: 'get',
-    url: `${BASE_URL}/decks/${deckId}`,
+    url: `${BASE_URL}/decks/${deck_id}`,
   })
   return response.data
 }
@@ -47,7 +58,7 @@ export const updateDeck = async ({
   return response.data
 }
 
-export const myDecks = async (config: AxiosRequestConfig) => {
+export const myDecks = async (_: any, config: AxiosRequestConfig) => {
   const response = await axios<IDeck[]>({
     ...config,
     method: 'get',
@@ -65,12 +76,12 @@ export const allDecks = async (config: AxiosRequestConfig) => {
   return response.data
 }
 
-export const addCardToDeck = async ({
-  front,
-  back,
-  deck_id,
-}: ICardInfo & { deck_id: number }) => {
-  const response = await axios<IDeckInfo>({
+export const addCardToDeck = async (
+  { front, back, deck_id }: ICardInfo & { deck_id: number },
+  config: AxiosRequestConfig
+) => {
+  const response = await axios<ICard>({
+    ...config,
     method: 'post',
     url: `${BASE_URL}/decks/${deck_id}/cards`,
     data: {
@@ -89,14 +100,18 @@ export const removeDeck = async ({ deck_id }: { deck_id: number }) => {
   return response.data
 }
 
-export const removeCardFromDeck = async ({
-  deck_id,
-  card_id,
-}: {
-  deck_id: number
-  card_id: number
-}) => {
+export const removeCardFromDeck = async (
+  {
+    deck_id,
+    card_id,
+  }: {
+    deck_id: number
+    card_id: number
+  },
+  config: AxiosRequestConfig
+) => {
   const response = await axios<void>({
+    ...config,
     method: 'delete',
     url: `${BASE_URL}/decks/${deck_id}/cards/${card_id}`,
   })

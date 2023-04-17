@@ -1,15 +1,21 @@
 import React, { useEffect } from 'react'
 import { Input, YStack, Label, Text, SizableText } from 'tamagui'
 import { useForm, SubmitHandler, Controller } from 'react-hook-form'
+import { NativeStackScreenProps } from '@react-navigation/native-stack'
 
+import { useStore } from 'store'
 import { LogoItem } from 'components/Logo'
 import { Layout } from 'components/Layout'
-import { NavProps } from 'types/NavTypes'
+import { RootAuthStackParamList } from 'types/NavTypes'
 import { Button } from 'components/Button'
-import { useStore } from 'store'
 import { IUserCredentials, IUserProfile } from 'store/authSlice'
 
-const RegisterScreen: React.FC<NavProps> = ({ navigation }) => {
+type RegisterScreenProps = NativeStackScreenProps<
+  RootAuthStackParamList,
+  'Register'
+>
+
+const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
   const { register, isLoading, isSuccess } = useStore((state) => state)
   const {
     control,

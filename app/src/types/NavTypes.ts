@@ -1,11 +1,15 @@
-import type { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { IDeckWithCards } from 'store/deckSlice'
 
-type RootStackParamList = {
-  Home: undefined;
-  Login: undefined;
-  Register: undefined;
-  Profile: { userId: string };
-  Feed: { sort: 'latest' | 'top' } | undefined;
-};
+export type RootAuthStackParamList = {
+  Login: undefined
+  Register: undefined
+}
 
-export type NavProps = NativeStackScreenProps<RootStackParamList, 'Login', "Register">;
+export type RootStackParamList = {
+  Home: undefined
+  'Add Deck': undefined
+  'Deck Info': { deck_id: number }
+  'Your Decks': undefined
+  'Swipe Screen': { deck: IDeckWithCards }
+  Profile: { user_id: string }
+}

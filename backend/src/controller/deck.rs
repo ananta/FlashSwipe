@@ -38,7 +38,7 @@ async fn get_deck_info(state: Data<AppState>, deck_identifier: Path<DeckIdentifi
         {
             Ok(deck) => {
                 match sqlx::query_as::<_, Card>(
-                    "SELECT * from cards where deck_id = $1::INTEGER")
+                    "SELECT * from cards where deck_id = $1::INTEGER ORDER BY published_on DESC ")
                     .bind(&deck_identifier.deck_id).fetch_all(&state.db).await {
                         Ok(cards) => {
                             return HttpResponse::Ok().json(json!({
