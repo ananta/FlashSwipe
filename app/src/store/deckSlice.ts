@@ -2,17 +2,6 @@ import { StateCreator } from 'zustand'
 
 import { Toast } from 'react-native-toast-message/lib/src/Toast'
 
-import {
-  createDeck,
-  getDeckInfo,
-  myDecks,
-  allDecks,
-  updateDeck,
-  removeDeck,
-  addCardToDeck,
-  removeCardFromDeck,
-} from 'api'
-
 export interface IDeckInfo {
   title: string
   description: string
@@ -40,33 +29,27 @@ export interface IDeckWithCards extends IDeck {
 
 export interface IDeckSlice {
   decks: IDeck[]
-  isLoading: boolean
   error: string
-  createDeck: (deckInfo: IDeckInfo) => void
+  createDeck: (deckInfo: IDeck) => void
   setDecks: (decks: IDeck[]) => void
-  isSuccess: boolean
 }
 
 export const createDeckSlice: StateCreator<IDeckSlice> = (set) => ({
   decks: [],
-  isLoading: false,
-  isSuccess: false,
   error: '',
   createDeck: async (deckInfo) => {
     try {
-      set({ isLoading: true })
+      console.log('adding deck to the state')
+      console.log({
+        deckInfo,
+      })
       /* const data = await loginUser(credentials) */
       set((state) => ({
         ...state,
-        isLoading: false,
-        isSuccess: true,
         decks: [
           ...state.decks,
           {
             ...deckInfo,
-            deck_id: 0,
-            published_by: 0,
-            published_on: new Date(),
           },
         ],
       }))
@@ -77,8 +60,6 @@ export const createDeckSlice: StateCreator<IDeckSlice> = (set) => ({
     } catch (err: any) {
       set({
         error: err?.message || 'Something went wrong',
-        isLoading: false,
-        isSuccess: false,
       })
       Toast.show({
         type: 'error',
@@ -89,8 +70,6 @@ export const createDeckSlice: StateCreator<IDeckSlice> = (set) => ({
   setDecks: (decks) => {
     set((state) => ({
       ...state,
-      isLoading: false,
-      isSuccess: true,
       decks,
     }))
   },
