@@ -1,6 +1,7 @@
 import { UseMutationOptions } from '@tanstack/react-query'
 
 import { AxiosRequestConfig } from 'axios'
+import { Toast } from 'react-native-toast-message/lib/src/Toast'
 import { useStore } from 'store'
 
 type UseAuthMutationOptions<TData, TError> = Omit<
@@ -35,11 +36,16 @@ const useAuthMutation = <TData = unknown, TError = unknown, TParams = unknown>(
         return data
       })
       .catch((error) => {
+        Toast.show({
+          type: 'error',
+          text1: `❌ ${error.message}`,
+        })
         console.error(error)
         throw error
       })
   }
 
+  // TODO
   const mergedConfig: UseMutationOptions<TData, TError> = {
     ...config,
   }
