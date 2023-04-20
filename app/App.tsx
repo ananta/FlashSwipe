@@ -8,6 +8,11 @@ import AppRoute from './src/App'
 
 import config from './tamagui.config'
 
+if (__DEV__) {
+  // @ts-ignore
+  import('./ReactotronConfig')
+}
+
 const App = () => {
   /* const colorScheme = useColorScheme(); */
   const colorScheme = 'dark'
