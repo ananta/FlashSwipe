@@ -1,5 +1,6 @@
 use crate::{AppState, TokenClaims};
-use crate::model::deck::{CreateDeckBody, Deck, DeckIdentifier, DeckAndCardIdentifier, UpdateDeckBody};
+use crate::model::deck::{CreateDeckBody,
+    Deck, DeckIdentifier, DeckAndCardIdentifier, UpdateDeckBody};
 use crate::model::card::{AddCardsInsideDeck, Card};
 use actix_web::{
     get,
@@ -9,6 +10,7 @@ use actix_web::{
     web::{Data, Json, ReqData, Path},
     HttpResponse, Responder
 };
+use sqlx::types::Uuid;
 use serde_json::json;
 use log::debug;
 
@@ -31,14 +33,14 @@ async fn get_deck_info(state: Data<AppState>, deck_identifier: Path<DeckIdentifi
     debug!("HERE: {}",&deck_identifier.deck_id);
 
     match sqlx::query_as::<_, Deck>(
-        "SELECT * from decks where deck_id = $1::INTEGER")
+        "SELECT * from decks where deck_id = $1::UUID")
         .bind(&deck_identifier.deck_id)
         .fetch_one(&state.db)
         .await
         {
             Ok(deck) => {
                 match sqlx::query_as::<_, Card>(
-                    "SELECT * from cards where deck_id = $1::INTEGER ORDER BY published_on DESC ")
+                    "SELECT * from cards where deck_id = $1::UUID ORDER BY published_on DESC ")
                     .bind(&deck_identifier.deck_id).fetch_all(&state.db).await {
                         Ok(cards) => {
                             return HttpResponse::Ok().json(json!({
@@ -114,7 +116,7 @@ async fn delete_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims
             if is_valid_deck.is_err() {
                 return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
             }
-            let rows_affected = sqlx::query!(r#"DELETE FROM decks where deck_id = $1"#, &deck_identifier.deck_id.parse::<i32>().unwrap()).execute(
+            let rows_affected = sqlx::query!(r#"DELETE FROM decks where deck_id = $1"#, &deck_identifier.deck_id.parse::<Uuid>().unwrap()).execute(
                 &state.db
             ).await
                 .unwrap().rows_affected();
@@ -154,10 +156,15 @@ async fn create_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims
     match req_user {
         Some(user) => {
             let deck_info: CreateDeckBody = body.into_inner();
+            let id = match deck_info.deck_id {
+                Some(deck_id) => deck_id.to_string(),
+                None => Uuid::new_v4().to_string(),
+            };
             match sqlx::query_as::<_, Deck>(
-                "INSERT INTO decks (title, description, published_by)
-                    VALUES ($1, $2, $3)
-                    RETURNING deck_id, title, description, published_by, published_on")
+                "INSERT INTO decks (deck_id, title, description, published_by)
+VALUES ($1::UUID, $2, $3, $4)
+RETURNING deck_id, title, description, published_by, published_on")
+                .bind(id)
                 .bind(deck_info.title)
                 .bind(deck_info.description)
                 .bind(user.user_id)
@@ -177,17 +184,22 @@ async fn create_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims
 async fn add_cards_in_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, body: Json<AddCardsInsideDeck>, deck_identifier: Path<DeckIdentifier>) -> impl Responder {
     match req_user {
         Some(user) => {
-            let deck_id:i32 = deck_identifier.deck_id.parse::<i32>().unwrap();
-            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
+            let deck_id:Uuid = deck_identifier.deck_id.parse::<Uuid>().unwrap();
+            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1::UUID AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
             if is_valid_deck.is_err() {
                 return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
             }
 
             let card_info: AddCardsInsideDeck = body.into_inner();
+            let card_id = match card_info.card_id {
+                Some(card_id) => card_id.to_string(),
+                None => Uuid::new_v4().to_string(),
+            };
             match sqlx::query_as::<_, Card>(
-                "INSERT INTO cards (deck_id, front, back)
-                    VALUES ($1, $2, $3)
-                    RETURNING card_id, deck_id, front, back, published_on")
+                "INSERT INTO cards (card_id, deck_id, front, back)
+VALUES ($1::UUID, $2::UUID, $3, $4)
+RETURNING card_id, deck_id, front, back, published_on")
+                .bind(card_id.to_owned())
                 .bind(deck_id.to_owned())
                 .bind(card_info.front)
                 .bind(card_info.back)
@@ -206,13 +218,13 @@ async fn add_cards_in_deck(state: Data<AppState>, req_user: Option<ReqData<Token
 async fn remove_cards_in_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, deck_identifier: Path<DeckAndCardIdentifier>) -> impl Responder {
     match req_user {
         Some(user) => {
-            let deck_id:i32 = deck_identifier.deck_id.parse::<i32>().unwrap();
-            let card_id:i32 = deck_identifier.card_id.parse::<i32>().unwrap();
-            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
+            let deck_id:Uuid = deck_identifier.deck_id.parse::<Uuid>().unwrap();
+            let card_id:Uuid = deck_identifier.card_id.parse::<Uuid>().unwrap();
+            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(&deck_id).bind(user.user_id).fetch_one(&state.db).await;
             if is_valid_deck.is_err() {
                 return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
             }
-            let rows_affected = sqlx::query!(r#"DELETE FROM cards where card_id = $1 AND deck_id = $2"#, card_id, deck_id).execute(
+            let rows_affected = sqlx::query!(r#"DELETE FROM cards where card_id = $1::UUID AND deck_id = $2::UUID"#, card_id, &deck_id).execute(
                 &state.db
             ).await
                 .unwrap().rows_affected();
