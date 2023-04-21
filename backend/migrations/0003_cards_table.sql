@@ -1,6 +1,6 @@
 CREATE TABLE cards (
-  card_id SERIAL PRIMARY KEY,
-  deck_id INT,
+  card_id UUID PRIMARY KEY,
+  deck_id UUID NOT NULL,
   front VARCHAR(255),
   back VARCHAR(255),
   published_on TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
