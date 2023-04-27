@@ -27,6 +27,14 @@ const DashStackNavigator = () => {
   )
 }
 
+const AccountStackNavigator = () => {
+  return (
+    <Stack.Navigator initialRouteName='Profile'>
+      <Stack.Screen name='Profile' component={AccountScreen} />
+    </Stack.Navigator>
+  )
+}
+
 const AppNavigator = () => {
   return (
     <Tab.Navigator
@@ -48,7 +56,7 @@ const AppNavigator = () => {
       />
       <Tab.Screen
         name='Profile'
-        component={AccountScreen}
+        component={AccountStackNavigator}
         options={{
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, size }) => (

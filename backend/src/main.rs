@@ -29,6 +29,7 @@ mod controller;
 mod extras;
 use controller::auth::{login, register};
 use controller::deck::{create_deck, get_decks,delete_deck, get_public_decks, get_deck_info, add_cards_in_deck, update_deck, remove_cards_in_deck};
+use controller::commits::{create_commit, get_user_commits};
 use controller::health_route::health_checker_handler;
 use extras::seed::add_seed_data;
 
@@ -109,7 +110,9 @@ async fn main() -> std::io::Result<()> {
                 .service(update_deck)
                 .service(get_public_decks)
                 .service(add_cards_in_deck)
-                .service(remove_cards_in_deck),
+                .service(remove_cards_in_deck)
+                .service(create_commit)
+                .service(get_user_commits),
             )
     })
         .bind(("0.0.0.0", 8080))?

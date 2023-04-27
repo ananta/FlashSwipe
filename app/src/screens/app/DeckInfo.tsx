@@ -30,6 +30,7 @@ import { useGetDeckInfoQuery } from 'hooks/useGetDeckInfoQuery'
 import { useRemoveCardFromMutation } from 'hooks/useRemoveCardMutation'
 import { EmptyItem } from 'components/EmptyItem'
 import { useUpdateDeckMutation } from 'hooks/useUpdateDeckMutation'
+import { useAddCommitsMutation } from 'hooks/useAddCommitsMutation'
 
 // TODO: File's too big & I've exams :()
 
@@ -69,6 +70,8 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
     isPaused: isAddingPaused,
     status,
   } = useAddCardToDeckMutation()
+
+  const { mutate: commit } = useAddCommitsMutation()
 
   const { mutate: removeCard } = useRemoveCardFromMutation()
 
@@ -170,7 +173,8 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
                 br='$10'
                 theme='gray'
                 disabled={!(cards.length > 0)}
-                onPress={() =>
+                onPress={() => {
+                  commit()
                   navigation.navigate('Swipe Screen', {
                     deck: {
                       deck_id,
@@ -179,7 +183,7 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
                       cards,
                     },
                   })
-                }
+                }}
                 color='white'
                 /* disabled={isLoading || isError} */
               >
