@@ -6,7 +6,7 @@ use actix_web::{
     get,
     post,
     delete,
-    patch,
+    put,
     web::{Data, Json, ReqData, Path},
     HttpResponse, Responder
 };
@@ -63,12 +63,13 @@ async fn get_deck_info(state: Data<AppState>, deck_identifier: Path<DeckIdentifi
 
 
 
-#[patch("/decks/{deck_id}")]
+#[put("/decks/{deck_id}")]
 async fn update_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, deck_identifier: Path<DeckIdentifier>, body: Json<UpdateDeckBody>) -> impl Responder {
     match req_user {
         Some(user) => {
-            let deck_id:i32 = deck_identifier.deck_id.parse::<i32>().unwrap();
-            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
+            debug!("Updating");
+            let deck_id:Uuid = deck_identifier.deck_id.parse::<Uuid>().unwrap();
+            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1::UUID AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
             if is_valid_deck.is_err() {
                 return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
             }
@@ -111,8 +112,8 @@ async fn update_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims
 async fn delete_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>, deck_identifier: Path<DeckIdentifier>) -> impl Responder {
     match req_user {
         Some(user) => {
-            let deck_id:i32 = deck_identifier.deck_id.parse::<i32>().unwrap();
-            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1 AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
+            let deck_id:Uuid = deck_identifier.deck_id.parse::<Uuid>().unwrap();
+            let is_valid_deck = sqlx::query_as::<_,Deck>("SELECT * FROM decks WHERE deck_id = $1::UUID AND published_by = $2").bind(deck_id).bind(user.user_id).fetch_one(&state.db).await;
             if is_valid_deck.is_err() {
                 return HttpResponse::InternalServerError().json(json!({"message":"Deck not found!"}));
             }
@@ -130,8 +131,6 @@ async fn delete_deck(state: Data<AppState>, req_user: Option<ReqData<TokenClaims
         }
     }
 }
-
-
 
 #[get("/decks/user")]
 async fn get_decks(state: Data<AppState>, req_user: Option<ReqData<TokenClaims>>) -> impl Responder {
