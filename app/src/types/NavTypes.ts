@@ -8,8 +8,9 @@ export type RootAuthStackParamList = {
 export type RootStackParamList = {
   Home: undefined
   'Add Deck': undefined
-  'Deck Info': { deck_id: number }
+  'Deck Info': { deck_id: string }
   'Your Decks': undefined
+  'Public Decks': undefined
   'Swipe Screen': { deck: IDeckWithCards }
   Profile: { user_id: string }
 }

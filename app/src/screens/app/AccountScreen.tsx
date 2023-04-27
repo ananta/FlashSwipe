@@ -1,22 +1,24 @@
 import React from 'react'
-import { Button, XStack, YStack, Label, Avatar, Text, Stack } from 'tamagui'
+import { Button, XStack, YStack, Label, Text, Stack } from 'tamagui'
+import { useQueryClient } from '@tanstack/react-query'
 
 import { useStore } from 'store'
+import OfflineSimulator from 'components/OfflineSimulator'
+import { LogoItem } from 'components/Logo'
 
 const ProfileScreen = () => {
   const { logout, user } = useStore()
+  const queryClient = useQueryClient()
+
+  const cleanUp = async () => {
+    await queryClient.invalidateQueries()
+    queryClient.removeQueries()
+  }
+
   return (
-    <YStack pt='$10'>
-      <XStack
-        flexDirection='row'
-        alignItems='center'
-        justifyContent='center'
-        space='$6'
-        pt='$10'
-      >
-        <Avatar circular size='$10'>
-          <Avatar.Fallback backgroundColor='$purple10' />
-        </Avatar>
+    <YStack pt='$4'>
+      <XStack flexDirection='row' alignItems='center' justifyContent='center'>
+        <LogoItem />
       </XStack>
       <XStack $sm={{ flexDirection: 'column' }} px='$4' space>
         <Stack margin={10}>
@@ -27,10 +29,11 @@ const ProfileScreen = () => {
             @{user.username} | #{user.user_id}
           </Text>
         </Stack>
-        <Button theme='purple_alt1' onPress={logout}>
+        <Button theme='gray' onPress={() => logout({ cleanUp })}>
           Logout
         </Button>
       </XStack>
+      <OfflineSimulator />
     </YStack>
   )
 }

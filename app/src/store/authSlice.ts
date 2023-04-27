@@ -1,5 +1,5 @@
 import { Toast } from 'react-native-toast-message/lib/src/Toast'
-import {  StateCreator } from 'zustand'
+import { StateCreator } from 'zustand'
 
 import { loginUser, registerUser } from '../api'
 
@@ -14,10 +14,10 @@ export interface IUserProfile {
 
 export interface IUserInfo
   extends Omit<IUserCredentials, 'password'>,
-  IUserProfile {
-    user_id: string
-    token: string
-  }
+    IUserProfile {
+  user_id: string
+  token: string
+}
 
 export interface IAuthSlice {
   user: IUserInfo
@@ -25,7 +25,7 @@ export interface IAuthSlice {
   error: string
   login: (credentials: IUserCredentials) => void
   register: (credentials: IUserCredentials & IUserProfile) => void
-  logout: () => void
+  logout: ({ cleanUp }: { cleanUp: () => void }) => void
   isLoggedIn: boolean
   isSuccess: boolean
 }
@@ -38,9 +38,7 @@ const initialUserState: IUserInfo = {
   last_name: '',
 }
 
-
-export const createAuthSlice: StateCreator<IAuthSlice> = 
-(set) => ({
+export const createAuthSlice: StateCreator<IAuthSlice> = (set) => ({
   user: {
     ...initialUserState,
   },
@@ -108,13 +106,13 @@ export const createAuthSlice: StateCreator<IAuthSlice> =
       })
     }
   },
-  logout: () => {
+  logout: ({ cleanUp }) => {
     set({
       user: initialUserState,
       isLoading: false,
       isLoggedIn: false,
       error: '',
     })
+    cleanUp()
   },
 })
-

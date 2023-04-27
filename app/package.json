@@ -41,6 +41,7 @@
     "react-native-screens": "~3.18.0",
     "react-native-svg": "13.4.0",
     "react-native-toast-message": "^2.1.6",
+    "react-native-uuid": "^2.0.1",
     "react-native-view-overflow": "^0.0.5",
     "react-native-web": "^0.18.12",
     "reactotron-react-native": "^5.0.3",

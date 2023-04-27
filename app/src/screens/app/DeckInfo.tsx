@@ -1,4 +1,4 @@
-import React, { Fragment, useState } from 'react'
+import React, { Fragment, useEffect, useState } from 'react'
 import { FlatList } from 'react-native'
 import {
   H6,
@@ -11,20 +11,27 @@ import {
   Input,
   SizableText,
   H3,
+  Spinner,
 } from 'tamagui'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { Toast } from 'react-native-toast-message/lib/src/Toast'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import { Controller, SubmitHandler, useForm } from 'react-hook-form'
+import uuid from 'react-native-uuid'
+import { useQueryClient } from '@tanstack/react-query'
 
-import { ICard, ICardInfo } from 'store/deckSlice'
+import { ICard, ICardInfo, IDeckInfo } from 'store/deckSlice'
 import { ListCard, ListCardActionContainer } from 'components/ListCard'
 import { Button } from 'components/Button'
 import { ActionCard } from 'components/ActionCard'
 import { RootStackParamList } from 'types/NavTypes'
-import { useAuthQuery } from 'hooks/useAuthQuery'
-import useAuthMutation from 'hooks/useAuthMutation'
-import { addCardToDeck, getDeckInfo, removeCardFromDeck } from 'api'
+import { useAddCardToDeckMutation } from 'hooks/useAddCardToDeck'
+import { useGetDeckInfoQuery } from 'hooks/useGetDeckInfoQuery'
+import { useRemoveCardFromMutation } from 'hooks/useRemoveCardMutation'
+import { EmptyItem } from 'components/EmptyItem'
+import { useUpdateDeckMutation } from 'hooks/useUpdateDeckMutation'
+
+// TODO: File's too big & I've exams :()
 
 type DeckInfoScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -37,57 +44,52 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
     params: { deck_id },
   },
 }) => {
-  const { data, isLoading, isError, refetch } = useAuthQuery(
-    ['deck', { deck_id }],
-    getDeckInfo,
-    {
-      onError(_) {
-        console.log('Failed getting deck info')
-        Toast.show({
-          type: 'error',
-          text1: 'Failed getting Decks',
-        })
-      },
-    }
-  )
-
-  // TODO: Create a separate component
+  useGetDeckInfoQuery({ deck_id })
 
   const [position, setPosition] = useState(0)
   const [addCardModalOpen, setAddCardModalOpen] = useState(false)
+  const [updateDeckModalOpen, setUpdateDeckModalOpen] = useState(false)
   const [innerOpen, setInnerOpen] = useState(false)
 
-  const [addCard] = useAuthMutation<
-    ICard,
-    unknown,
-    ICardInfo & { deck_id: number }
-  >(addCardToDeck, {
-    onSuccess: (data: ICard) => {
-      refetch()
-      Toast.show({
-        type: 'success',
-        text1: '✅ Card Added',
-      })
-      setAddCardModalOpen(false)
-    },
-  })
+  const queryClient = useQueryClient()
 
-  const [removeCard] = useAuthMutation<
-    unknown,
-    unknown,
-    { deck_id: number; card_id: number }
-  >(removeCardFromDeck, {
-    onSuccess: () => {
-      refetch()
-      Toast.show({
-        type: 'success',
-        text1: '✅ Card Removed',
-      })
-    },
-  })
+  const info = queryClient.getQueryData<{
+    title: string
+    description: string
+  }>(['my-decks', deck_id, 'info'])
+  const cards: ICard[] =
+    queryClient.getQueryData(['my-decks', deck_id, 'cards']) || []
+
+  console.log({ here: cards })
+
+  const {
+    mutate: addCard,
+    isSuccess: isAddCardSuccess,
+    isLoading: isAddingCard,
+    isPaused: isAddingPaused,
+    status,
+  } = useAddCardToDeckMutation()
+
+  const { mutate: removeCard } = useRemoveCardFromMutation()
+
+  const {
+    mutate: updateDeck,
+    isSuccess: isUpdateDeckSuccess,
+    isLoading: isUpdateDeckLoading,
+    isPaused: isUpdateDeckPaused,
+  } = useUpdateDeckMutation()
+
+  const handleUpdateDeck: SubmitHandler<IDeckInfo> = (deckInfo) => {
+    // call the mutation
+    updateDeck({
+      deck_id,
+      ...deckInfo,
+    })
+  }
 
   const handleCreateCard: SubmitHandler<ICardInfo> = (cardInfo) => {
-    addCard({ ...cardInfo, deck_id })
+    const card_id = uuid.v4().toString()
+    addCard({ ...cardInfo, deck_id, card_id })
   }
 
   const {
@@ -95,12 +97,52 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
     handleSubmit,
     formState: { errors },
     setFocus,
+    reset: resetForm,
   } = useForm<ICardInfo>({
     defaultValues: {
       front: '',
       back: '',
     },
   })
+
+  console.log({ info })
+
+  const title = info?.title || 'undefined'
+  const description = info?.description || 'undefined'
+  const {
+    control: updateControl,
+    handleSubmit: handleUpdateSubmit,
+    formState: { errors: updateErrors },
+    setFocus: setUpdateFocus,
+    reset: resetUpdateForms,
+  } = useForm<IDeckInfo>({
+    defaultValues: {
+      title,
+      description,
+    },
+  })
+
+  useEffect(() => {
+    if (isUpdateDeckPaused || isUpdateDeckSuccess) {
+      Toast.show({
+        type: 'success',
+        text1: '✅ Deck Updated',
+      })
+      setUpdateDeckModalOpen(false)
+      resetUpdateForms()
+    }
+  }, [isUpdateDeckPaused, isUpdateDeckSuccess, isUpdateDeckLoading, updateDeck])
+
+  useEffect(() => {
+    if (isAddingPaused || isAddCardSuccess) {
+      Toast.show({
+        type: 'success',
+        text1: '✅ Card Added',
+      })
+      setAddCardModalOpen(false)
+      resetForm()
+    }
+  }, [isAddingPaused, isAddCardSuccess, isAddingCard, addCard, status, cards])
 
   return (
     <>
@@ -114,8 +156,8 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
         </XStack>
         <XStack $sm={{ flexDirection: 'column' }} space>
           <ActionCard
-            title={data?.deck.title || '--'}
-            subTitle={data?.deck.description || '--'}
+            title={title}
+            subTitle={description}
             animation='bouncy'
             size='$5'
             h={200}
@@ -123,31 +165,50 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
             hoverStyle={{ scale: 0.925 }}
             pressStyle={{ scale: 0.875 }}
           >
-            {data?.deck && (
+            {cards && (
               <Button
                 br='$10'
                 theme='gray'
+                disabled={!(cards.length > 0)}
                 onPress={() =>
                   navigation.navigate('Swipe Screen', {
-                    deck: data.deck,
+                    deck: {
+                      deck_id,
+                      title,
+                      description,
+                      cards,
+                    },
                   })
                 }
                 color='white'
-                disabled={isLoading || isError}
+                /* disabled={isLoading || isError} */
               >
                 Start swiping
               </Button>
             )}
-
             <Button
               br='$10'
               ml='$2'
               theme='gray'
-              onPress={() => setAddCardModalOpen(true)}
+              onPress={() => {
+                setAddCardModalOpen(true)
+                setFocus('front')
+              }}
               color='white'
-              disabled={isLoading || isError}
             >
               Add Card
+            </Button>
+            <Button
+              br='$10'
+              ml='$2'
+              theme='gray'
+              onPress={() => {
+                setUpdateDeckModalOpen(true)
+                setUpdateFocus('title')
+              }}
+              color='white'
+            >
+              Update Deck
             </Button>
           </ActionCard>
         </XStack>
@@ -156,16 +217,20 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
             <H6 fontWeight='$2' size='$5'>
               Cards
             </H6>
+            {isAddingCard && (
+              <YStack alignItems='center'>
+                <Spinner size='small' color='$purple10' />
+              </YStack>
+            )}
           </XStack>
         </XStack>
-        <XStack space style={{ flex: 1 }}>
+        <XStack flex={1}>
           <FlatList
-            data={data?.deck.cards || []}
-            contentContainerStyle={{
-              flexGrow: 1,
-            }}
+            data={cards || []}
+            style={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item, index }) => (
+            ListEmptyComponent={EmptyItem}
+            renderItem={({ item }) => (
               <ListCard
                 key={item.card_id}
                 renderRightActions={() => (
@@ -197,116 +262,101 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
           />
         </XStack>
       </YStack>
-
+      {/* UPDATE DECK */}
       <Sheet
-        forceRemoveScrollEnabled={addCardModalOpen}
         modal
-        open={addCardModalOpen}
-        onOpenChange={setAddCardModalOpen}
+        open={updateDeckModalOpen}
+        onOpenChange={setUpdateDeckModalOpen}
         snapPoints={[50]}
         dismissOnSnapToBottom
+        forceRemoveScrollEnabled
         position={position}
         onPositionChange={setPosition}
-        zIndex={100_000}
+        moveOnKeyboardChange
       >
         <Sheet.Overlay />
         <Sheet.Handle />
         <Sheet.Frame padding='$4' backgroundColor={'black'}>
-          <H3 marginVertical='$4'>Add Card </H3>
+          <H3 marginVertical='$4'>Update Deck</H3>
           <Controller
-            control={control}
+            control={updateControl}
             rules={{
               required: true,
             }}
             render={({ field: { onChange, onBlur, value, ref } }) => (
               <Fragment>
-                <Label>Front</Label>
+                <Label>Title</Label>
                 <Input
                   ref={ref}
                   borderWidth={2}
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  disabled={isLoading}
                   value={value}
                   autoCapitalize='none'
                   returnKeyType='next'
                   returnKeyLabel='next'
-                  onSubmitEditing={() => setFocus('back')}
+                  onSubmitEditing={() => setUpdateFocus('description')}
                 />
-                {errors.front && (
+                {updateErrors.title && (
                   <SizableText size='$3' theme='alt1' color='red'>
                     This is required
                   </SizableText>
                 )}
               </Fragment>
             )}
-            name='front'
+            name='title'
           />
 
           <Controller
-            control={control}
+            control={updateControl}
             rules={{
               required: true,
             }}
             render={({ field: { onChange, onBlur, value, ref } }) => (
               <Fragment>
-                <Label>Back</Label>
+                <Label>Description</Label>
                 <Input
                   ref={ref}
                   borderWidth={2}
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  disabled={isLoading}
                   value={value}
                   autoCapitalize='none'
                   returnKeyType='next'
                   returnKeyLabel='next'
-                  onSubmitEditing={handleSubmit(handleCreateCard)}
+                  onSubmitEditing={handleUpdateSubmit(handleUpdateDeck)}
                 />
-                {errors.back && (
+                {updateErrors.description && (
                   <SizableText size='$3' theme='alt1' color='red'>
                     This is required
                   </SizableText>
                 )}
               </Fragment>
             )}
-            name='back'
+            name='description'
           />
 
           <Button
             theme='purple'
             color='white'
             mt='$5'
-            onPress={handleSubmit(handleCreateCard)}
-            /* isLoading={true} */
+            onPress={handleUpdateSubmit(handleUpdateDeck)}
           >
-            Add Card
+            Update Deck
           </Button>
-
-          <>
-            <InnerSheet open={innerOpen} onOpenChange={setInnerOpen} />
-
-            <Button color='white' mt='$2' onPress={() => setInnerOpen(true)}>
-              <MaterialCommunityIcons
-                name='chevron-down'
-                size={30}
-                color='white'
-              />
-            </Button>
-          </>
         </Sheet.Frame>
       </Sheet>
 
       <Sheet
-        forceRemoveScrollEnabled={addCardModalOpen}
         modal
         open={addCardModalOpen}
         onOpenChange={setAddCardModalOpen}
         snapPoints={[50]}
         dismissOnSnapToBottom
+        forceRemoveScrollEnabled
         position={position}
         onPositionChange={setPosition}
-        zIndex={100_000}
+        moveOnKeyboardChange
       >
         <Sheet.Overlay />
         <Sheet.Handle />
@@ -325,7 +375,7 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
                   borderWidth={2}
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  disabled={isLoading}
+                  disabled={isAddingCard}
                   value={value}
                   autoCapitalize='none'
                   returnKeyType='next'
@@ -355,7 +405,7 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
                   borderWidth={2}
                   onBlur={onBlur}
                   onChangeText={onChange}
-                  disabled={isLoading}
+                  disabled={isAddingCard}
                   value={value}
                   autoCapitalize='none'
                   returnKeyType='next'
@@ -377,7 +427,6 @@ const DeckInfoScreen: React.FC<DeckInfoScreenProps> = ({
             color='white'
             mt='$5'
             onPress={handleSubmit(handleCreateCard)}
-            /* isLoading={true} */
           >
             Add Card
           </Button>

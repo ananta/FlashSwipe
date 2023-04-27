@@ -26,9 +26,11 @@ pub struct AppState {
 
 mod model;
 mod controller;
+mod extras;
 use controller::auth::{login, register};
 use controller::deck::{create_deck, get_decks,delete_deck, get_public_decks, get_deck_info, add_cards_in_deck, update_deck, remove_cards_in_deck};
 use controller::health_route::health_checker_handler;
+use extras::seed::add_seed_data;
 
 // define structure of our bearer token
 // should be serializeable, deserialzable and cloneable
@@ -79,6 +81,14 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Error building a connection pool");
     migrate!("./migrations").run(&pool).await.expect("Error running migrations");
+
+   // Check if seed data has already been added
+    let seed_data_added = std::env::var("SEED_DATA_ADDED").is_ok();
+    if !seed_data_added {
+        add_seed_data(&pool).await;
+        // Set flag indicating that seed data has been added
+        std::env::set_var("SEED_DATA_ADDED", "true");
+    }
 
     HttpServer::new(move || {
         let logger:Logger =  Logger::default();

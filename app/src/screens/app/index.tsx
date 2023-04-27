@@ -21,7 +21,7 @@ const DashStackNavigator = () => {
       <Stack.Screen name='Home' component={DashboardScreen} />
       <Stack.Screen name='Add Deck' component={AddDecksScreen} />
       <Stack.Screen name='Deck Info' component={DeckInfoScreen} />
-      <Stack.Screen name='Your Decks' component={YourDeckScreen} />
+      <Stack.Screen name='Public Decks' component={YourDeckScreen} />
       <Stack.Screen name='Swipe Screen' component={SwipeScreen} />
     </Stack.Navigator>
   )

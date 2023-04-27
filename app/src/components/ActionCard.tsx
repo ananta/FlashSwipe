@@ -1,11 +1,18 @@
+import { ReactNode } from 'react'
 import { Card, CardProps, Paragraph, H2 } from 'tamagui'
 
 interface ActionCardProps extends CardProps {
   title: string
   subTitle?: string
+  children?: ReactNode
 }
 
-export const ActionCard = ({ title, subTitle, ...props }: ActionCardProps) => {
+export const ActionCard: React.FC<ActionCardProps> = ({
+  title,
+  subTitle,
+  children,
+  ...props
+}) => {
   return (
     <Card theme='dark' elevate size='$3' bordered {...props}>
       <Card.Header padded>
@@ -13,7 +20,7 @@ export const ActionCard = ({ title, subTitle, ...props }: ActionCardProps) => {
         <Paragraph theme='alt2'>{subTitle}</Paragraph>
       </Card.Header>
       <Card.Footer padded display='inline-flex' justifyContent='flex-end'>
-        {props.children}
+        {children}
       </Card.Footer>
     </Card>
   )

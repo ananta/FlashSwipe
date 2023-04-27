@@ -1,14 +1,14 @@
-import React, { Fragment } from 'react'
+import React, { Fragment, useEffect } from 'react'
 import { SubmitHandler, useForm, Controller } from 'react-hook-form'
-import { Button, Input, YStack, Label, SizableText } from 'tamagui'
+import { Input, YStack, Label, SizableText } from 'tamagui'
 import { Toast } from 'react-native-toast-message/lib/src/Toast'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import uuid from 'react-native-uuid'
 
-import { useStore } from 'store'
-import { createDeck } from 'api'
-import { IDeck, IDeckInfo } from 'store/deckSlice'
-import useAuthMutation from 'hooks/useAuthMutation'
+import { IDeckInfo } from 'store/deckSlice'
+import { Button } from 'components/Button'
 import { RootStackParamList } from 'types/NavTypes'
+import { useAddDeckMutation } from 'hooks/useAddDeckMutation'
 
 type AddDecksScreenProps = NativeStackScreenProps<
   RootStackParamList,
@@ -16,20 +16,22 @@ type AddDecksScreenProps = NativeStackScreenProps<
 >
 
 const AddDecksScreen: React.FC<AddDecksScreenProps> = ({ navigation }) => {
-  const { createDeck: addDeckToState } = useStore((state) => state)
+  const {
+    mutate: addDeck,
+    isSuccess,
+    isLoading,
+    isPaused,
+  } = useAddDeckMutation()
 
-  const [addDeck] = useAuthMutation<IDeck, unknown, IDeckInfo>(createDeck, {
-    onSuccess: (data: IDeck) => {
-      console.log({ data })
-      addDeckToState(data)
+  useEffect(() => {
+    if (isSuccess || isPaused) {
+      navigation.goBack()
       Toast.show({
         type: 'success',
         text1: '✅ Deck created',
       })
-      navigation.goBack()
-      console.log('Mutation succeeded!', data)
-    },
-  })
+    }
+  }, [isSuccess, isPaused])
 
   const {
     control,
@@ -43,8 +45,20 @@ const AddDecksScreen: React.FC<AddDecksScreenProps> = ({ navigation }) => {
     },
   })
 
-  const handleAddDeck: SubmitHandler<IDeckInfo> = (deckInfo) =>
-    addDeck(deckInfo)
+  const handleAddDeck: SubmitHandler<IDeckInfo> = (deckInfo) => {
+    const newDeck = {
+      title: deckInfo.title,
+      description: deckInfo.description,
+      deck_id: uuid.v4().toString(),
+    }
+    console.log({ newDeck })
+    return addDeck({
+      title: newDeck.title,
+      description: newDeck.description,
+      deck_id: newDeck.deck_id,
+    })
+  }
+
   return (
     <YStack p='$3' space='$2'>
       <Controller
@@ -106,7 +120,13 @@ const AddDecksScreen: React.FC<AddDecksScreenProps> = ({ navigation }) => {
         )}
         name='description'
       />
-      <Button theme='purple' mt='$2' onPress={handleSubmit(handleAddDeck)}>
+      <Button
+        theme='purple'
+        mt='$2'
+        onPress={handleSubmit(handleAddDeck)}
+        isLoading={isLoading}
+        disabled={isLoading}
+      >
         Add Deck
       </Button>
     </YStack>

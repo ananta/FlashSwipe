@@ -1,7 +1,8 @@
-import React, { createRef, useState } from 'react'
+import React, { createRef, useEffect, useState } from 'react'
 import {
   XStack,
   YStack,
+  H1,
   H2,
   Card,
   Paragraph,
@@ -16,7 +17,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 
 import { RootStackParamList } from 'types/NavTypes'
-import { ICardInfo } from 'store/deckSlice'
+import { ICard, ICardInfo } from 'store/deckSlice'
 
 const SwipeCard = ({ front, back, ...props }: ICardInfo & CardProps) => {
   return (
@@ -88,96 +89,173 @@ type SwipeScreenProps = NativeStackScreenProps<
   'Swipe Screen'
 >
 
+interface ICardWithBox extends ICard {
+  box: number
+}
+
 const SwipeScreen: React.FC<SwipeScreenProps> = ({
-  navigation,
   route: { params: deckInfo },
 }) => {
-  const swipeRef = createRef<Swiper<{ front: string; back: string }>>()
+  const swipeRef =
+    createRef<Swiper<{ front: string; back: string; card_id: string }>>()
+  const [_cards, _setCards] = useState<ICard[]>(deckInfo.deck.cards)
+  const [cards, setCards] = useState<ICardWithBox[]>([])
+
   const [index, setIndex] = useState(0)
   const [progress, setProgress] = useState(0)
-  const [totalCards] = useState(deckInfo.deck.cards)
 
-  const handleSwipe = (cardIndex: number) => {
-    setIndex((cardIndex + 1) % totalCards.length)
-    setProgress(cardIndex + 1)
+  const NUM_BOXES = 3
+  const handleSwipe = (cardIndex: number, isCorrect: boolean) => {
+    if (cards.length > 0) {
+      const newCards = [...cards]
+      const currentCard = newCards[cardIndex]
+      if (isCorrect) {
+        currentCard.box = Math.min(currentCard.box + 1, NUM_BOXES)
+      } else {
+        currentCard.box = 1
+      }
+
+      const filtered = newCards.filter((card) => card.box < NUM_BOXES)
+      if (filtered.length != cards.length) {
+        /* swipeRef?.current.jumpToCardIndex(0) */
+        console.log('Setting index')
+        setIndex(0)
+      } else {
+        setIndex((index) => (index + 1) % filtered.length)
+      }
+      setCards([...filtered])
+    }
   }
+
+  useEffect(() => {
+    if (cards && cards.length >= 0) {
+      swipeRef?.current?.jumpToCardIndex(0)
+      setProgress(_cards.length - cards.length)
+    }
+  }, [cards.length])
+
+  // TODO: Implement this algo after the demo
+  /* const shuffle = (cards: ICardWithBox[]): ICardWithBox[] => { */
+  /*   // Fisher-Yates algorithm */
+  /*   const shuffledCards = cards.slice() */
+  /*   for (let i = shuffledCards.length - 1; i > 0; i--) { */
+  /*     const j = Math.floor(Math.random() * (i + 1)) */
+  /*     const temp = shuffledCards[i] */
+  /*     shuffledCards[i] = shuffledCards[j] */
+  /*     shuffledCards[j] = temp */
+  /*   } */
+  /*   console.log({ shuffledCards }) */
+  /*   return shuffledCards */
+  /* } */
+
+  useEffect(() => {
+    const newCards = _cards.map((card) => ({
+      ...card,
+      box: 1,
+    }))
+    setCards(newCards)
+  }, [])
 
   return (
     <>
-      <YStack mt='$10' flex={0.6}>
+      <YStack flex={0.6}>
         <XStack>
-          <Swiper
-            ref={swipeRef}
-            stackSize={4}
-            stackScale={10}
-            stackSeparation={14}
-            onSwiped={handleSwipe}
-            disableTopSwipe
-            disableBottomSwipe
-            infinite
-            cards={totalCards}
-            cardIndex={index}
-            renderCard={(card) => (
-              <SwipeCard front={card.front} back={card.back} />
-            )}
-            animateOverlayLabelsOpacity
-            overlayLabels={{
-              left: {
-                title: 'still learning',
-                style: {
-                  label: {
-                    backgroundColor: 'red',
-                    color: 'white',
-                    fontSize: 24,
-                  },
-                  wrapper: {
-                    flexDirection: 'column',
-                    alignItems: 'flex-end',
-                    justifyContent: 'flex-start',
-                    marginTop: 20,
-                    marginLeft: -20,
+          {cards && cards.length == 0 ? (
+            <Card width='100%' height='100%' elevate size='$3' bordered p='$4'>
+              <Card.Header
+                padded
+                alignItems='center'
+                justifyContent='center'
+                height='100%'
+              >
+                <H1>🎉</H1>
+                <H2>Congratulations!</H2>
+                <Paragraph theme='alt2'>You've learned everything!</Paragraph>
+              </Card.Header>
+            </Card>
+          ) : (
+            <Swiper
+              // @ts-ignore
+              ref={swipeRef}
+              stackSize={cards && cards.length >= 2 ? 2 : 1}
+              showSecondCard
+              stackScale={10}
+              stackSeparation={14}
+              onSwipedLeft={(cardIndex: number) =>
+                handleSwipe(cardIndex, false)
+              }
+              onSwipedRight={(cardIndex: number) =>
+                handleSwipe(cardIndex, true)
+              }
+              disableTopSwipe
+              disableBottomSwipe
+              infinite
+              cards={cards}
+              cardIndex={index}
+              useNativeDriver
+              renderCard={(card: ICardWithBox) => (
+                <SwipeCard
+                  front={card ? card.front : ''}
+                  back={card ? card.back : ''}
+                />
+              )}
+              animateOverlayLabelsOpacity
+              overlayLabels={{
+                left: {
+                  title: 'still learning',
+                  style: {
+                    label: {
+                      backgroundColor: 'red',
+                      color: 'white',
+                      fontSize: 24,
+                    },
+                    wrapper: {
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      justifyContent: 'flex-start',
+                      marginTop: 20,
+                      marginLeft: -20,
+                    },
                   },
                 },
-              },
-              right: {
-                title: 'know',
-                style: {
-                  label: {
-                    backgroundColor: 'green',
-                    color: 'white',
-                    fontSize: 24,
-                  },
-                  wrapper: {
-                    flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    justifyContent: 'flex-start',
-                    marginTop: 20,
-                    marginLeft: 20,
+                right: {
+                  title: 'know',
+                  style: {
+                    label: {
+                      backgroundColor: 'green',
+                      color: 'white',
+                      fontSize: 24,
+                    },
+                    wrapper: {
+                      flexDirection: 'column',
+                      alignItems: 'flex-start',
+                      justifyContent: 'flex-start',
+                      marginTop: 20,
+                      marginLeft: 20,
+                    },
                   },
                 },
-              },
-            }}
-          />
+              }}
+            />
+          )}
         </XStack>
       </YStack>
       <YStack flex={0.4}>
         <XStack
           $sm={{ flexDirection: 'column' }}
           space
-          pt='$4'
+          pt='$1'
           alignItems='center'
         >
           <Progress
             size={'$6'}
             mt='$10'
-            value={((progress + 1) / totalCards.length) * 100}
+            value={(progress / _cards.length) * 100}
             width='70%'
           >
             <Progress.Indicator animation='bouncy' />
           </Progress>
-          <Paragraph>
-            {progress + 1} / {totalCards.length}
-          </Paragraph>
+          <Paragraph fontWeight='$4'>learned: {progress}</Paragraph>
         </XStack>
 
         <XStack
