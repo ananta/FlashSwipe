@@ -1,5 +1,5 @@
-import { View, Text } from 'react-native';
-import { Svg, Rect, Path } from 'react-native-svg';
+import { View } from 'react-native'
+import { Svg, Rect, Path } from 'react-native-svg'
 
 export const Logo = () => (
   <Svg width='100' height='100' viewBox='0 0 365 448' fill='none'>
@@ -23,7 +23,7 @@ export const Logo = () => (
       fill='#0ECF82'
     />
   </Svg>
-);
+)
 
 export const LogoItem = () => (
   <View
@@ -35,4 +35,4 @@ export const LogoItem = () => (
   >
     <Logo />
   </View>
-);
+)
