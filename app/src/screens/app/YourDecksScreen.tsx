@@ -3,19 +3,25 @@ import { FlatList } from 'react-native'
 import { H6, XStack, YStack } from 'tamagui'
 import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { useQueryClient } from '@tanstack/react-query'
 
-import { useStore } from 'store'
 import { RootStackParamList } from 'types/NavTypes'
 import { ListCard } from 'components/ListCard'
+import { EmptyItem } from 'components/EmptyItem'
+import { IDeck } from 'store/deckSlice'
 
 type YourDecksScreenProps = NativeStackScreenProps<
   RootStackParamList,
-  'Your Decks'
+  'Public Decks'
 >
 
 const YourDeckScreen: React.FC<YourDecksScreenProps> = ({ navigation }) => {
-  const { decks } = useStore()
+  const queryClient = useQueryClient()
+
+  const data: IDeck[] = queryClient.getQueryData(['my-decks']) || []
+
   const tabHeight = useBottomTabBarHeight()
+  console.log({ data })
   return (
     <YStack>
       <XStack $sm={{ flexDirection: 'column' }} px='$5' mt='$4' space>
@@ -27,7 +33,8 @@ const YourDeckScreen: React.FC<YourDecksScreenProps> = ({ navigation }) => {
       </XStack>
       <XStack>
         <FlatList
-          data={decks}
+          data={data || []}
+          ListEmptyComponent={EmptyItem}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ flexGrow: 1, paddingBottom: tabHeight + 10 }}
           renderItem={({ item, index }) => (
@@ -43,7 +50,7 @@ const YourDeckScreen: React.FC<YourDecksScreenProps> = ({ navigation }) => {
               pressStyle={{ scale: 0.875 }}
               onPress={() =>
                 navigation.navigate('Deck Info', {
-                  deck_id: item.deck_id,
+                  ...item,
                 })
               }
             />
