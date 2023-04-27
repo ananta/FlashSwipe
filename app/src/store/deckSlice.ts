@@ -2,6 +2,9 @@ import { StateCreator } from 'zustand'
 
 import { Toast } from 'react-native-toast-message/lib/src/Toast'
 
+export interface IDeckIdentifier {
+  deck_id: string
+}
 export interface IDeckInfo {
   title: string
   description: string
@@ -11,16 +14,15 @@ export interface ICardInfo {
   front: string
   back: string
 }
-export interface ICard extends ICardInfo {
-  card_id: number
-  deck_id: number
+export interface ICard extends ICardInfo, IDeckIdentifier {
+  card_id: string
   published_on: Date
 }
 
 export interface IDeck extends IDeckInfo {
-  deck_id: number
-  published_by: number
-  published_on: Date
+  deck_id: string
+  published_by?: number
+  published_on?: Date
 }
 
 export interface IDeckWithCards extends IDeck {

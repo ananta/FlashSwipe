@@ -1,5 +1,5 @@
 export interface DeckInfo {
-  deck_id: number
+  deck_id: string
   title: string
   description: string
   published_by: number
